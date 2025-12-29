@@ -369,15 +369,23 @@ jobs:
           $env:CC = "$clangPath/clang.exe"
           $env:CXX = "$clangPath/clang++.exe"
 
-          # Debug: show what's in the install directory
-          Write-Host "Looking for cmake files..."
-          Write-Host "Contents of llvmInstall:"
-          if (Test-Path $llvmInstall) {
-            Get-ChildItem -Path $llvmInstall -Depth 3 | ForEach-Object { Write-Host $_.FullName }
-          } else {
-            Write-Host "Directory does not exist: $llvmInstall"
-            Write-Host "Checking parent..."
-            Get-ChildItem -Path "${{ github.workspace }}/compiler+runtime/build/llvm-install" -Recurse -Depth 3 | ForEach-Object { Write-Host $_.FullName }
+          # Verify LLVM cmake configs exist - check multiple possible locations
+          Write-Host "Checking for LLVM cmake configs..."
+          Write-Host "Full directory structure of $llvmInstall :"
+          if (Test-Path "$llvmInstall") {
+            Get-ChildItem "$llvmInstall" -Recurse -Depth 3 -Directory | Select-Object FullName
+          }
+
+          # Check common locations for cmake configs
+          $cmakePaths = @(
+            "$llvmInstall/lib/cmake/llvm/LLVMConfig.cmake",
+            "$llvmInstall/cmake/LLVMConfig.cmake",
+            "$llvmInstall/share/llvm/cmake/LLVMConfig.cmake"
+          )
+          foreach ($p in $cmakePaths) {
+            if (Test-Path $p) {
+              Write-Host "Found LLVMConfig.cmake at: $p"
+            }
           }
 
           cd compiler+runtime
