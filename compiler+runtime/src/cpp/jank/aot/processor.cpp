@@ -243,16 +243,6 @@ int main(int argc, const char** argv)
       compiler_args.push_back(strdup(util::format("-l{}", lib).c_str()));
     }
 
-    /* macOS requires framework linking for OpenGL/GUI applications. */
-    if constexpr(jtl::current_platform == jtl::platform::macos_like)
-    {
-      for(auto const &framework : { "OpenGL", "Cocoa", "IOKit", "CoreFoundation" })
-      {
-        compiler_args.push_back(strdup("-framework"));
-        compiler_args.push_back(strdup(framework));
-      }
-    }
-
     /* On non-macOS platforms, explicitly link libstdc++.
      * macOS uses libc++ implicitly via Clang. */
     if constexpr(jtl::current_platform != jtl::platform::macos_like)

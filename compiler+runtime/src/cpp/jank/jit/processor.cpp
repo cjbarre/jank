@@ -1,3 +1,5 @@
+#include <filesystem>
+
 #include <clang/AST/Type.h>
 #include <clang/Basic/Diagnostic.h>
 #include <clang/Frontend/CompilerInstance.h>
@@ -92,8 +94,42 @@ namespace jank::jit
     std::vector<char const *> args{};
     std::stringstream flags{ JANK_JIT_FLAGS };
     std::string flag;
+
+    /* Detect if we're running from inside a .app bundle. If so, ALL hardcoded /Users/
+     * paths from the build machine should be skipped - they're stale and will trigger
+     * macOS permission dialogs even on the build machine itself (since Documents is
+     * a protected folder). */
+    auto const is_app_bundle{ util::process_path().find(".app/") != std::string::npos };
+
     while(std::getline(flags, flag, ' '))
     {
+      /* Skip include paths that don't exist. For paths in /Users/, we skip them
+       * entirely when running from an app bundle (they're stale build paths).
+       * During development, we only skip paths from other users. */
+      if(flag.starts_with("-I"))
+      {
+        auto const path{ flag.substr(2) };
+        if(path.starts_with("/Users/"))
+        {
+          /* In app bundles, skip ALL /Users/ paths - they're from the build machine */
+          if(is_app_bundle)
+          {
+            continue;
+          }
+          /* In development, only skip paths from other users */
+          auto const home{ getenv("HOME") };
+          if(!home || !path.starts_with(home))
+          {
+            continue;
+          }
+        }
+        /* Only check existence for paths we're allowed to access. */
+        std::error_code ec;
+        if(!std::filesystem::exists(path, ec) || ec)
+        {
+          continue;
+        }
+      }
       args.emplace_back(strdup(flag.c_str()));
     }
 
@@ -164,6 +200,10 @@ namespace jank::jit
     auto const &pch_path_str{ pch_path.unwrap() };
     args.emplace_back("-include-pch");
     args.emplace_back(strdup(pch_path_str.c_str()));
+    /* Disable PCH validation to prevent Clang from checking if the original
+     * header paths still exist (they won't on end-user machines). */
+    args.emplace_back("-Xclang");
+    args.emplace_back("-fno-validate-pch");
 
     util::add_system_flags(args);
 

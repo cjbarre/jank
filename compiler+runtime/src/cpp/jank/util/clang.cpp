@@ -88,23 +88,58 @@ namespace jank::util
       return result;
     }
 
-    std::filesystem::path const configured_path{ JANK_CLANG_PATH };
-    if(std::filesystem::exists(configured_path))
-    {
-      return result = configured_path.c_str();
-    }
+    std::error_code ec;
 
+    /* Check bundled clang first - this avoids triggering macOS permission prompts
+     * for the hardcoded JANK_CLANG_PATH when running as a distributed app. */
     std::filesystem::path const resource_dir{ util::resource_dir().c_str() };
     std::filesystem::path const installed_path{ resource_dir / "bin/clang++" };
-    if(std::filesystem::exists(installed_path))
+    if(std::filesystem::exists(installed_path, ec) && !ec)
     {
       return result = installed_path.c_str();
     }
 
-    std::filesystem::path const cxx_path{ getenv("CXX") ?: "" };
-    if(std::filesystem::exists(cxx_path) && is_clang_correct_version(cxx_path))
+    /* Detect if we're running from inside a .app bundle. If so, skip ALL /Users/
+     * paths since they're stale build-machine paths that will trigger TCC prompts. */
+    auto const is_app_bundle{ util::process_path().find(".app/") != std::string::npos };
+
+    /* For paths in /Users/, only check them if:
+     * - We're NOT in an app bundle (development mode), AND
+     * - They belong to the current user
+     * This avoids triggering macOS permission dialogs for baked-in build machine paths. */
+    auto const home{ getenv("HOME") };
+    auto const is_accessible_path = [home, is_app_bundle](char const *path) {
+      std::string_view const sv{ path };
+      if(!sv.starts_with("/Users/"))
+      {
+        return true;
+      }
+      /* In app bundles, ALL /Users/ paths are stale build paths */
+      if(is_app_bundle)
+      {
+        return false;
+      }
+      /* In development, only allow paths from current user */
+      return home && sv.starts_with(home);
+    };
+
+    if(is_accessible_path(JANK_CLANG_PATH))
     {
-      return result = cxx_path.c_str();
+      std::filesystem::path const configured_path{ JANK_CLANG_PATH };
+      if(std::filesystem::exists(configured_path, ec) && !ec)
+      {
+        return result = configured_path.c_str();
+      }
+    }
+
+    auto const cxx_env{ getenv("CXX") };
+    if(cxx_env && is_accessible_path(cxx_env))
+    {
+      std::filesystem::path const cxx_path{ cxx_env };
+      if(std::filesystem::exists(cxx_path, ec) && !ec && is_clang_correct_version(cxx_path))
+      {
+        return result = cxx_path.c_str();
+      }
     }
 
     auto const versioned_path{ llvm::sys::findProgramByName("clang++-" JANK_CLANG_MAJOR_VERSION) };
@@ -234,15 +269,16 @@ namespace jank::util
       return "/virtual/incremental.pch";
     }
 
+    std::error_code ec;
     auto dev_path{ jank_path / "incremental.pch" };
-    if(std::filesystem::exists(dev_path))
+    if(std::filesystem::exists(dev_path, ec) && !ec)
     {
       return dev_path.c_str();
     }
 
     std::string const installed_path{ format("{}/incremental.pch",
                                              user_cache_dir(binary_version)) };
-    if(std::filesystem::exists(installed_path))
+    if(std::filesystem::exists(installed_path, ec) && !ec)
     {
       return installed_path.c_str();
     }
@@ -258,11 +294,12 @@ namespace jank::util
           "Note: Looks like your first run with these flags. Building pre-compiled header… ");
 
     std::filesystem::path const jank_path{ process_dir().c_str() };
+    std::error_code ec;
     auto include_path{ jank_path / "../include/cpp/jank/prelude.hpp" };
-    if(!std::filesystem::exists(include_path))
+    if(!std::filesystem::exists(include_path, ec) || ec)
     {
       auto const install_path{ util::resource_dir() + "/include/jank/prelude.hpp" };
-      if(!std::filesystem::exists(install_path.c_str()))
+      if(!std::filesystem::exists(install_path.c_str(), ec) || ec)
       {
         println(stderr, "failed!");
         return err(error::system_failure(

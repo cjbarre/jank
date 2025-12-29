@@ -174,7 +174,8 @@ namespace jank::util
                             && jank_path.parent_path().filename() == "compiler+runtime" };
 
       auto const configured_path{ (jank_path / dir) };
-      if(std::filesystem::exists(configured_path) || dev_build)
+      std::error_code ec;
+      if(std::filesystem::exists(configured_path, ec) || dev_build)
       {
         return configured_path.c_str();
       }
