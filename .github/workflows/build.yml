@@ -328,6 +328,8 @@ jobs:
               -DLLVM_OPTIMIZED_TABLEGEN=ON `
               -DCLANG_ENABLE_STATIC_ANALYZER=OFF `
               -DCLANG_ENABLE_ARCMT=OFF `
+              -DLLVM_INSTALL_UTILS=ON `
+              -DLLVM_EXPORT_SYMBOLS_FOR_PLUGINS=ON `
               -DCMAKE_INSTALL_PREFIX="$buildDir/llvm-install/usr/local"
 
             # Build and install
@@ -367,9 +369,16 @@ jobs:
           $env:CC = "$clangPath/clang.exe"
           $env:CXX = "$clangPath/clang++.exe"
 
-          # Debug: show what cmake files exist
+          # Debug: show what's in the install directory
           Write-Host "Looking for cmake files..."
-          Get-ChildItem -Path $llvmInstall -Recurse -Filter "*.cmake" | Select-Object -First 20
+          Write-Host "Contents of llvmInstall:"
+          if (Test-Path $llvmInstall) {
+            Get-ChildItem -Path $llvmInstall -Depth 3 | ForEach-Object { Write-Host $_.FullName }
+          } else {
+            Write-Host "Directory does not exist: $llvmInstall"
+            Write-Host "Checking parent..."
+            Get-ChildItem -Path "${{ github.workspace }}/compiler+runtime/build/llvm-install" -Recurse -Depth 3 | ForEach-Object { Write-Host $_.FullName }
+          }
 
           cd compiler+runtime
           cmake -B build -G Ninja `
