@@ -108,11 +108,7 @@ int main(int argc, const char** argv)
 }
   )");
 
-    auto const tmp_dir{ std::filesystem::temp_directory_path() };
-    std::string main_file_path{ tmp_dir / "jank-main-XXXXXX" };
-
-    auto const fd{ mkstemp(main_file_path.data()) };
-    close(fd);
+    std::string const main_file_path{ util::make_temp_file("jank-main") };
 
     std::ofstream out(main_file_path);
     out << sb.release();
@@ -243,9 +239,10 @@ int main(int argc, const char** argv)
       compiler_args.push_back(strdup(util::format("-l{}", lib).c_str()));
     }
 
-    /* On non-macOS platforms, explicitly link libstdc++.
-     * macOS uses libc++ implicitly via Clang. */
-    if constexpr(jtl::current_platform != jtl::platform::macos_like)
+    /* On Linux, explicitly link libstdc++.
+     * macOS uses libc++ implicitly via Clang.
+     * Windows uses MSVC runtime libraries. */
+    if constexpr(jtl::current_platform == jtl::platform::linux_like)
     {
       compiler_args.push_back(strdup("-lstdc++"));
     }
@@ -261,7 +258,11 @@ int main(int argc, const char** argv)
     {
       compiler_args.push_back(strdup("-Wl,--export-dynamic"));
     }
-    compiler_args.push_back(strdup("-rdynamic"));
+    /* -rdynamic exports all symbols for dynamic linking, needed on Unix but not Windows. */
+    if constexpr(jtl::current_platform != jtl::platform::windows_like)
+    {
+      compiler_args.push_back(strdup("-rdynamic"));
+    }
     compiler_args.push_back(strdup("-O2"));
 
     /* Required because of `strdup` usage and need to manually free the memory.

@@ -31,9 +31,7 @@ namespace jank::util
 {
   static bool is_clang_correct_version(std::filesystem::path const &path)
   {
-    auto const tmp{ std::filesystem::temp_directory_path() };
-    std::string path_tmp{ tmp / "jank-clang-XXXXXX" };
-    mkstemp(path_tmp.data());
+    std::string const path_tmp{ make_temp_file("jank-clang") };
     auto const proc_code{ llvm::sys::ExecuteAndWait(path.c_str(),
                                                     { path.c_str(), "--version" },
                                                     std::nullopt,

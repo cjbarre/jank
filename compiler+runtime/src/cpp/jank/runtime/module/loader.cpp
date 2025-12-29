@@ -1,6 +1,10 @@
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <unistd.h>
+#if defined(_WIN32)
+  #include <windows.h>
+#else
+  #include <sys/mman.h>
+  #include <fcntl.h>
+  #include <unistd.h>
+#endif
 
 #include <filesystem>
 #include <regex>
@@ -534,14 +538,26 @@ namespace jank::runtime::module
     if(head != nullptr)
     /* NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): I want const everywhere else. */
     {
+#if defined(_WIN32)
+      UnmapViewOfFile(head);
+#else
       munmap(reinterpret_cast<void *>(const_cast<char *>(head)), len);
+#endif
       head = nullptr;
     }
+#if defined(_WIN32)
+    if(fd != 0)
+    {
+      CloseHandle(reinterpret_cast<HANDLE>(static_cast<intptr_t>(fd)));
+      fd = 0;
+    }
+#else
     if(fd >= 0)
     {
       ::close(fd);
       fd = -1;
     }
+#endif
   }
 
   static jtl::result<file_view, error_ref> read_jar_file(jtl::immutable_string const &path)
@@ -586,6 +602,37 @@ namespace jank::runtime::module
       return error::runtime_unable_to_open_file(util::format("File '{}' doesn't exist.", path));
     }
     auto const file_size(std::filesystem::file_size(path.c_str()));
+
+#if defined(_WIN32)
+    HANDLE const file_handle{
+      CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+                  FILE_ATTRIBUTE_NORMAL, nullptr)
+    };
+    if(file_handle == INVALID_HANDLE_VALUE)
+    {
+      return error::runtime_unable_to_open_file(util::format("Unable to open file '{}'.", path));
+    }
+
+    HANDLE const mapping_handle{ CreateFileMappingA(file_handle, nullptr, PAGE_READONLY, 0, 0, nullptr) };
+    if(mapping_handle == nullptr)
+    {
+      CloseHandle(file_handle);
+      return error::runtime_unable_to_open_file(util::format("Unable to create file mapping for '{}'.", path));
+    }
+
+    auto const head(reinterpret_cast<char const *>(MapViewOfFile(mapping_handle, FILE_MAP_READ, 0, 0, 0)));
+    /* We can close the mapping handle after MapViewOfFile; the view keeps it alive. */
+    CloseHandle(mapping_handle);
+
+    if(head == nullptr)
+    {
+      CloseHandle(file_handle);
+      return error::runtime_unable_to_open_file(util::format("Unable to map file '{}'.", path));
+    }
+
+    /* Store file_handle in fd field (cast to int for storage, will be cast back in reset). */
+    return ok(file_view{ path, static_cast<int>(reinterpret_cast<intptr_t>(file_handle)), head, file_size });
+#else
     /* NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg) */
     auto const fd(::open(path.c_str(), O_RDONLY));
     if(fd < 0)
@@ -606,6 +653,7 @@ namespace jank::runtime::module
     }
 
     return ok(file_view{ path, fd, head, file_size });
+#endif
   }
 
   jtl::result<file_view, error_ref> loader::read_file(jtl::immutable_string const &path)

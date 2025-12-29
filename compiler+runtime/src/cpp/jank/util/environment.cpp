@@ -1,6 +1,12 @@
 #if defined(__APPLE__)
   #include <mach-o/dyld.h>
   #include <string>
+#elif defined(_WIN32)
+  #include <windows.h>
+#endif
+
+#if !defined(_WIN32)
+  #include <unistd.h>
 #endif
 
 #include <filesystem>
@@ -28,7 +34,11 @@ namespace jank::util
       return res;
     }
 
+#if defined(_WIN32)
+    auto const home(getenv("USERPROFILE"));
+#else
     auto const home(getenv("HOME"));
+#endif
     if(home)
     {
       res = home;
@@ -44,6 +54,15 @@ namespace jank::util
       return res;
     }
 
+#if defined(_WIN32)
+    auto const local_app_data(getenv("LOCALAPPDATA"));
+    if(local_app_data)
+    {
+      res = util::format("{}\\jank\\{}", local_app_data, binary_version);
+      return res;
+    }
+    res = util::format("{}\\AppData\\Local\\jank\\{}", user_home_dir(), binary_version);
+#else
     auto const xdg_cache(getenv("XDG_CACHE_HOME"));
     if(xdg_cache)
     {
@@ -51,6 +70,7 @@ namespace jank::util
       return res;
     }
     res = util::format("{}/.cache/jank/{}", user_home_dir(), binary_version);
+#endif
     return res;
   }
 
@@ -62,6 +82,15 @@ namespace jank::util
       return res;
     }
 
+#if defined(_WIN32)
+    auto const app_data(getenv("APPDATA"));
+    if(app_data)
+    {
+      res = util::format("{}\\jank", app_data);
+      return res;
+    }
+    res = util::format("{}\\AppData\\Roaming\\jank", user_home_dir());
+#else
     auto const home(getenv("XDG_CONFIG_HOME"));
     if(home)
     {
@@ -69,6 +98,7 @@ namespace jank::util
       return res;
     }
     res = util::format("{}/.config/jank", user_home_dir());
+#endif
     return res;
   }
 
@@ -147,6 +177,14 @@ namespace jank::util
     return std::filesystem::canonical(path).string();
 #elif defined(__linux__)
     return std::filesystem::canonical("/proc/self/exe").string();
+#elif defined(_WIN32)
+    char path[MAX_PATH];
+    DWORD const length{ GetModuleFileNameA(nullptr, path, MAX_PATH) };
+    if(length == 0 || length == MAX_PATH)
+    {
+      return "";
+    }
+    return std::filesystem::canonical(path).string();
 #else
     static_assert(false, "Unsupported platform");
 #endif
@@ -212,9 +250,7 @@ namespace jank::util
       static std::string sdk_path;
       if(sdk_path.empty())
       {
-        auto const tmp{ std::filesystem::temp_directory_path() };
-        std::string path_tmp{ tmp / "jank-xcrun-XXXXXX" };
-        mkstemp(path_tmp.data());
+        std::string const path_tmp{ make_temp_file("jank-xcrun") };
 
         auto const xcrun_path{ llvm::sys::findProgramByName("xcrun") };
         if(!xcrun_path)
@@ -247,5 +283,31 @@ namespace jank::util
       args.emplace_back(strdup("-isysroot"));
       args.emplace_back(strdup(sdk_path.c_str()));
     }
+  }
+
+  std::string make_temp_file(std::string const &prefix)
+  {
+    auto const tmp{ std::filesystem::temp_directory_path() };
+#if defined(_WIN32)
+    char temp_path[MAX_PATH];
+    char temp_file[MAX_PATH];
+    if(GetTempPathA(MAX_PATH, temp_path) == 0)
+    {
+      return "";
+    }
+    if(GetTempFileNameA(temp_path, prefix.c_str(), 0, temp_file) == 0)
+    {
+      return "";
+    }
+    return temp_file;
+#else
+    std::string path_tmp{ tmp / (prefix + "-XXXXXX") };
+    int const fd{ mkstemp(path_tmp.data()) };
+    if(fd >= 0)
+    {
+      close(fd);
+    }
+    return path_tmp;
+#endif
   }
 }

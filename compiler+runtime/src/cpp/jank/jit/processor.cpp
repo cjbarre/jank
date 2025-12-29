@@ -38,6 +38,11 @@ namespace jank::jit
   {
     return util::format("lib{}.so", lib);
   }
+#elif defined(_WIN32)
+  {
+    /* Windows DLLs don't use the "lib" prefix */
+    return util::format("{}.dll", lib);
+  }
 #endif
 
   [[maybe_unused]]

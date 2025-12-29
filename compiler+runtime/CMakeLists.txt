@@ -73,6 +73,11 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
   set(jank_link_whole_start "-Wl,-force_load")
   set(jank_link_whole_end "")
+elseif(WIN32)
+  # MSVC uses /WHOLEARCHIVE:libname syntax
+  # For now, we'll use an empty wrapper and rely on explicit object file linking
+  set(jank_link_whole_start "")
+  set(jank_link_whole_end "")
 else()
   message(FATAL_ERROR "Unsupported OS: " ${CMAKE_SYSTEM_NAME})
 endif()
@@ -183,12 +188,24 @@ endfunction()
 # This should greatly simplify distribution, since package maintainers
 # can configure jank correctly during the build phase and then it'll just
 # continue to work with that setup once it's installed.
-execute_process(
-  COMMAND bash -c "${CMAKE_CXX_COMPILER} -xc++ -E -v /dev/null 2>&1 | sed -n -e '/^.include/,\${' -e '/^ \\/.*/p' -e '}' | sed 's/^[[:space:]]\\{1,\\}/-I/' | sed 's/ (framework directory)//'"
-  RESULT_VARIABLE clang_system_includes_result
-  OUTPUT_VARIABLE clang_system_includes_unescaped
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+if(WIN32)
+  # On Windows, use PowerShell to extract include paths from clang verbose output.
+  # The verbose output (-v) goes to stderr, so we redirect it.
+  execute_process(
+    COMMAND powershell -Command "& '${CMAKE_CXX_COMPILER}' -xc++ -E -v $null 2>&1 | Select-String -Pattern '^ [A-Z]:' | ForEach-Object { '-I' + $_.Line.Trim() }"
+    RESULT_VARIABLE clang_system_includes_result
+    OUTPUT_VARIABLE clang_system_includes_unescaped
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
+else()
+  execute_process(
+    COMMAND bash -c "${CMAKE_CXX_COMPILER} -xc++ -E -v /dev/null 2>&1 | sed -n -e '/^.include/,\${' -e '/^ \\/.*/p' -e '}' | sed 's/^[[:space:]]\\{1,\\}/-I/' | sed 's/ (framework directory)//'"
+    RESULT_VARIABLE clang_system_includes_result
+    OUTPUT_VARIABLE clang_system_includes_unescaped
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+endif()
 if(NOT clang_system_includes_result EQUAL 0)
   message(FATAL_ERROR
     "Failed to extract include paths from ${CMAKE_CXX_COMPILER}:\n"
@@ -336,8 +353,16 @@ set_target_properties(jankzip_lib PROPERTIES ENABLE_EXPORTS 1)
 # a couple of other custom commands, including a command to merge all of the
 # object files seen into the final library.
 
-configure_file(bin/ar-merge ar-merge USE_SOURCE_PERMISSIONS @ONLY)
-set(CMAKE_AR "${CMAKE_BINARY_DIR}/ar-merge")
+if(WIN32)
+  configure_file(bin/ar-merge.ps1 ar-merge.ps1 @ONLY)
+  # On Windows, we need to invoke PowerShell to run the script
+  # We create a wrapper batch file that CMake can use as CMAKE_AR
+  file(WRITE "${CMAKE_BINARY_DIR}/ar-merge.bat" "@powershell -ExecutionPolicy Bypass -File \"${CMAKE_BINARY_DIR}/ar-merge.ps1\" %*")
+  set(CMAKE_AR "${CMAKE_BINARY_DIR}/ar-merge.bat")
+else()
+  configure_file(bin/ar-merge ar-merge USE_SOURCE_PERMISSIONS @ONLY)
+  set(CMAKE_AR "${CMAKE_BINARY_DIR}/ar-merge")
+endif()
 set(jank_lib_standalone_deps
   jank_lib
   cpptrace::cpptrace
@@ -349,12 +374,18 @@ set(jank_lib_standalone_deps
   folly_lib
   clangCppInterOp
 )
+if(WIN32)
+  set(ar_merge_script "${CMAKE_BINARY_DIR}/ar-merge.bat")
+else()
+  set(ar_merge_script "${CMAKE_BINARY_DIR}/ar-merge")
+endif()
+
 add_custom_command(
   DEPENDS ${jank_lib_standalone_deps}
   OUTPUT ${CMAKE_BINARY_DIR}/libjank-standalone-phase-1.a
   COMMAND_EXPAND_LISTS
   VERBATIM
-  COMMAND "${CMAKE_BINARY_DIR}/ar-merge" merge
+  COMMAND "${ar_merge_script}" merge
 )
 add_custom_target(
   jank_lib_standalone_phase_1
@@ -368,7 +399,7 @@ add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/libjank-standalone.a
   COMMAND_EXPAND_LISTS
   VERBATIM
-  COMMAND "${CMAKE_BINARY_DIR}/ar-merge" merge-phase-2
+  COMMAND "${ar_merge_script}" merge-phase-2
 )
 add_custom_target(
   jank_lib_standalone_phase_2

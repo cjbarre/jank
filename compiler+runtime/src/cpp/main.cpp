@@ -24,6 +24,7 @@
 #include <jank/util/string.hpp>
 #include <jank/util/fmt/print.hpp>
 #include <jank/util/try.hpp>
+#include <jank/util/environment.hpp>
 #include <jank/environment/check_health.hpp>
 #include <jank/runtime/convert/builtin.hpp>
 
@@ -158,9 +159,7 @@ namespace jank
     /* We write every REPL expression to a temporary file, which then allows us
      * to later review that for error reporting. We automatically clean it up
      * and we reuse the same file over and over. */
-    auto const tmp{ std::filesystem::temp_directory_path() };
-    std::string path_tmp{ tmp / "jank-repl-XXXXXX" };
-    mkstemp(path_tmp.data());
+    std::string const path_tmp{ util::make_temp_file("jank-repl") };
 
     auto const first_res_var{ __rt_ctx->find_var("clojure.core", "*1") };
     auto const second_res_var{ __rt_ctx->find_var("clojure.core", "*2") };
