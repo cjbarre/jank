@@ -300,10 +300,17 @@ jobs:
       - name: Build Clang/LLVM
         shell: pwsh
         run: |
-          $installPath = "${{ github.workspace }}/compiler+runtime/build/llvm-install/usr/local/bin/clang++.exe"
+          $buildDir = "${{ github.workspace }}/compiler+runtime/build"
+          $installPath = "$buildDir/llvm-install/usr/local/bin/clang++.exe"
+
+          # Create build directory if it doesn't exist
+          if (-not (Test-Path $buildDir)) {
+            New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
+          }
+
           if (-not (Test-Path $installPath)) {
             Write-Host "Building LLVM from source (this will take a while)..."
-            cd ${{ github.workspace }}/compiler+runtime/build
+            cd $buildDir
 
             # Clone LLVM
             if (-not (Test-Path "llvm")) {
@@ -321,7 +328,7 @@ jobs:
               -DLLVM_OPTIMIZED_TABLEGEN=ON `
               -DCLANG_ENABLE_STATIC_ANALYZER=OFF `
               -DCLANG_ENABLE_ARCMT=OFF `
-              -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/compiler+runtime/build/llvm-install/usr/local"
+              -DCMAKE_INSTALL_PREFIX="$buildDir/llvm-install/usr/local"
 
             # Build and install
             cmake --build llvm-build --parallel
