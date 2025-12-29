@@ -366,12 +366,19 @@ jobs:
           $env:PATH = "$clangPath;$env:PATH"
           $env:CC = "$clangPath/clang.exe"
           $env:CXX = "$clangPath/clang++.exe"
+
+          # Debug: show what cmake files exist
+          Write-Host "Looking for cmake files..."
+          Get-ChildItem -Path $llvmInstall -Recurse -Filter "*.cmake" | Select-Object -First 20
+
           cd compiler+runtime
           cmake -B build -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_C_COMPILER="$clangPath/clang.exe" `
             -DCMAKE_CXX_COMPILER="$clangPath/clang++.exe" `
             -Dllvm_dir="$llvmInstall" `
+            -DLLVM_DIR="$llvmInstall/lib/cmake/llvm" `
+            -DClang_DIR="$llvmInstall/lib/cmake/clang" `
             -Djank_local_clang=ON `
             -Djank_test=OFF
       - name: Build jank
