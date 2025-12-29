@@ -361,7 +361,8 @@ jobs:
       - name: Configure jank
         shell: pwsh
         run: |
-          $clangPath = "${{ github.workspace }}/compiler+runtime/build/llvm-install/usr/local/bin"
+          $llvmInstall = "${{ github.workspace }}/compiler+runtime/build/llvm-install/usr/local"
+          $clangPath = "$llvmInstall/bin"
           $env:PATH = "$clangPath;$env:PATH"
           $env:CC = "$clangPath/clang.exe"
           $env:CXX = "$clangPath/clang++.exe"
@@ -370,6 +371,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_C_COMPILER="$clangPath/clang.exe" `
             -DCMAKE_CXX_COMPILER="$clangPath/clang++.exe" `
+            -Dllvm_dir="$llvmInstall" `
             -Djank_local_clang=ON `
             -Djank_test=OFF
       - name: Build jank
