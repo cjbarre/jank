@@ -296,7 +296,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/compiler+runtime/build/llvm-install
-          key: clang-Windows-${{ hashFiles('compiler+runtime/bin/build-clang') }}
+          key: clang-Windows-v2-${{ hashFiles('compiler+runtime/bin/build-clang') }}
       - name: Build Clang/LLVM
         shell: pwsh
         run: |
@@ -335,6 +335,14 @@ jobs:
             # Build and install
             cmake --build llvm-build --parallel
             cmake --install llvm-build
+
+            # Verify install is complete
+            $cmakeConfig = "$buildDir/llvm-install/usr/local/lib/cmake/llvm/LLVMConfig.cmake"
+            if (-not (Test-Path $cmakeConfig)) {
+              Write-Error "LLVM install incomplete: missing $cmakeConfig"
+              exit 1
+            }
+            Write-Host "LLVM install verified: cmake configs present"
           }
           & $installPath --version
 
@@ -359,7 +367,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/compiler+runtime/build/llvm-install
-          key: clang-Windows-${{ hashFiles('compiler+runtime/bin/build-clang') }}
+          key: clang-Windows-v2-${{ hashFiles('compiler+runtime/bin/build-clang') }}
       - name: Configure jank
         shell: pwsh
         run: |
@@ -369,23 +377,14 @@ jobs:
           $env:CC = "$clangPath/clang.exe"
           $env:CXX = "$clangPath/clang++.exe"
 
-          # Verify LLVM cmake configs exist - check multiple possible locations
+          # Verify LLVM cmake configs exist
           Write-Host "Checking for LLVM cmake configs..."
-          Write-Host "Full directory structure of $llvmInstall :"
-          if (Test-Path "$llvmInstall") {
-            Get-ChildItem "$llvmInstall" -Recurse -Depth 3 -Directory | Select-Object FullName
-          }
-
-          # Check common locations for cmake configs
-          $cmakePaths = @(
-            "$llvmInstall/lib/cmake/llvm/LLVMConfig.cmake",
-            "$llvmInstall/cmake/LLVMConfig.cmake",
-            "$llvmInstall/share/llvm/cmake/LLVMConfig.cmake"
-          )
-          foreach ($p in $cmakePaths) {
-            if (Test-Path $p) {
-              Write-Host "Found LLVMConfig.cmake at: $p"
-            }
+          if (Test-Path "$llvmInstall/lib/cmake/llvm/LLVMConfig.cmake") {
+            Write-Host "Found LLVMConfig.cmake"
+          } else {
+            Write-Host "ERROR: LLVMConfig.cmake not found at $llvmInstall/lib/cmake/llvm/"
+            Write-Host "Contents of lib directory:"
+            Get-ChildItem "$llvmInstall/lib" -Depth 1
           }
 
           cd compiler+runtime
