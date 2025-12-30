@@ -222,6 +222,10 @@ separate_arguments(clang_system_include_dirs)
 
 set(clang_system_include_flags "")
 foreach(dir ${clang_system_include_dirs})
+  # On Windows, convert backslashes to forward slashes to avoid escape sequence issues
+  if(WIN32)
+    string(REPLACE "\\" "/" dir "${dir}")
+  endif()
   list(APPEND clang_system_include_flags ${dir})
 endforeach()
 
@@ -237,9 +241,20 @@ if(NOT clang_resource_dir_result EQUAL 0)
     "  exit code: ${clang_resource_dir_result}"
   )
 endif()
+
+# On Windows, convert backslashes to forward slashes to avoid escape sequence
+# issues when these paths are embedded as string literals in C++ code.
+if(WIN32)
+  string(REPLACE "\\" "/" clang_resource_dir "${clang_resource_dir}")
+  # CMAKE_CXX_COMPILER is already forward-slash on Windows when using CMake
+  file(TO_CMAKE_PATH "${CMAKE_CXX_COMPILER}" jank_clang_path)
+else()
+  set(jank_clang_path "${CMAKE_CXX_COMPILER}")
+endif()
+
 list(APPEND jank_common_compiler_flags
   -DJANK_RESOURCE_DIR="${jank_resource_dir}"
-  -DJANK_CLANG_PATH="${CMAKE_CXX_COMPILER}"
+  -DJANK_CLANG_PATH="${jank_clang_path}"
   -DJANK_CLANG_MAJOR_VERSION="${CLANG_VERSION_MAJOR}"
   -DJANK_CLANG_RESOURCE_DIR="${clang_resource_dir}"
 )
@@ -679,6 +694,10 @@ foreach(dir ${jank_lib_includes_prop})
   # We need to strip all of that out.
   if(${dir} MATCHES "BUILD_INTERFACE:")
     string(REGEX REPLACE "\\$<BUILD_INTERFACE:(.*)>" "\\1" dir_path ${dir})
+    # On Windows, convert backslashes to forward slashes to avoid escape sequence issues
+    if(WIN32)
+      string(REPLACE "\\" "/" dir_path "${dir_path}")
+    endif()
     list(APPEND jank_lib_includes -I${dir_path})
   else()
     # We use -I instead of -isystem here, since the latter causes Clang's JIT to
@@ -687,6 +706,10 @@ foreach(dir ${jank_lib_includes_prop})
     #
     # Fortunately, this doesn't really matter. The main reason for the system includes
     # is for static analysis and such to ignore those headers.
+    # On Windows, convert backslashes to forward slashes to avoid escape sequence issues
+    if(WIN32)
+      string(REPLACE "\\" "/" dir "${dir}")
+    endif()
     list(APPEND jank_lib_includes -I${dir})
   endif()
 endforeach()

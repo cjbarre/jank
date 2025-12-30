@@ -192,7 +192,7 @@ namespace jank::util
 
   jtl::immutable_string process_dir()
   {
-    return std::filesystem::path{ process_path().c_str() }.parent_path().c_str();
+    return std::filesystem::path{ process_path().c_str() }.parent_path().string();
   }
 
   jtl::immutable_string resource_dir()
@@ -200,7 +200,7 @@ namespace jank::util
     std::filesystem::path const dir{ JANK_RESOURCE_DIR };
     if(dir.is_absolute())
     {
-      return dir.c_str();
+      return dir.string();
     }
     else
     {
@@ -215,7 +215,7 @@ namespace jank::util
       std::error_code ec;
       if(std::filesystem::exists(configured_path, ec) || dev_build)
       {
-        return configured_path.c_str();
+        return configured_path.string();
       }
 
       /* However, if the configured path doesn't exist, and we're not in a dev build, chances
@@ -229,12 +229,12 @@ namespace jank::util
       if(installed_jank_res)
       {
         std::filesystem::path const installed_jank_path{ *installed_jank_res };
-        return (installed_jank_path.parent_path() / dir).c_str();
+        return (installed_jank_path.parent_path() / dir).string();
       }
 
       /* Otherwise, just return what we can and we'll raise an error down the road when we
        * fail to find things. */
-      return configured_path.c_str();
+      return configured_path.string();
     }
   }
 

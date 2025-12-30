@@ -141,7 +141,7 @@ namespace jank::environment
         icon,
         terminal_style::reset,
         terminal_style::blue,
-        dir.c_str(),
+        dir.string(),
         terminal_style::reset,
         terminal_style::bright_black,
         /* NOLINTNEXTLINE(readability-avoid-nested-conditional-operator) */

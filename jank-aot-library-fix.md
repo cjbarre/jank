@@ -208,3 +208,50 @@ args.emplace_back(strdup(pch_path_str.c_str()));
 args.emplace_back("-Xclang");
 args.emplace_back("-fno-validate-pch");
 ```
+
+### 9. Windows path handling (`CMakeLists.txt`, multiple `.cpp` files)
+
+Two Windows-specific path issues cause build failures:
+
+**Issue 1: Backslash escape sequences in CMake-embedded paths**
+
+Windows paths like `D:\a\jank\jank\compiler+runtime\...` contain backslashes that are interpreted as C++ escape sequences when embedded in string literals via CMake defines (e.g., `JANK_JIT_FLAGS`). Characters like `\j`, `\u`, `\c`, `\l` become invalid escapes, and `\u` specifically triggers "unicode escape with no hex digits" errors.
+
+**Files:** `CMakeLists.txt`
+
+**Fix:** Convert all Windows paths to forward slashes before embedding in compiler flags:
+
+```cmake
+# On Windows, convert backslashes to forward slashes to avoid escape sequence
+# issues when these paths are embedded as string literals in C++ code.
+if(WIN32)
+  string(REPLACE "\\" "/" clang_resource_dir "${clang_resource_dir}")
+  file(TO_CMAKE_PATH "${CMAKE_CXX_COMPILER}" jank_clang_path)
+endif()
+```
+
+Applied to:
+- `clang_resource_dir` from `-print-resource-dir`
+- `jank_clang_path` (the compiler path)
+- All paths in `clang_system_include_flags`
+- All paths in `jank_lib_includes`
+
+**Issue 2: `wchar_t*` vs `char*` from `std::filesystem::path::c_str()`**
+
+On Windows, `std::filesystem::path::value_type` is `wchar_t`, so `path.c_str()` returns `const wchar_t*`. On Linux/macOS, it's `char`. Code that passes `path.c_str()` to functions expecting `const char*` fails on Windows with type conversion errors.
+
+**Files:** `util/environment.cpp`, `util/clang.cpp`, `jit/processor.cpp`, `aot/processor.cpp`, `environment/check_health.cpp`
+
+**Fix:** Use `path.string()` instead of `path.c_str()` when a `char*` or `std::string` is needed:
+
+```cpp
+// Before (fails on Windows):
+return configured_path.c_str();
+
+// After (works on all platforms):
+return configured_path.string();
+```
+
+This is safe cross-platform:
+- On Linux/macOS: `path.string()` returns the internal string (no conversion)
+- On Windows: `path.string()` converts UTF-16 to UTF-8
