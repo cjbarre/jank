@@ -7,7 +7,7 @@ namespace jank::util
   std::filesystem::path relative_path(std::filesystem::path const &path)
   {
     auto const &relative{ std::filesystem::relative(path) };
-    auto const is_subpath{ !relative.empty() && relative.native()[0] != '.' };
+    auto const is_subpath{ !relative.empty() && relative.string()[0] != '.' };
     if(is_subpath)
     {
       return relative;

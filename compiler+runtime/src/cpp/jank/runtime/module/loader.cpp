@@ -293,7 +293,7 @@ namespace jank::runtime::module
     {
       if(std::filesystem::is_regular_file(f))
       {
-        register_relative_entry(entries, path, file_entry{ none, f.path().native() });
+        register_relative_entry(entries, path, file_entry{ none, f.path().string() });
       }
     }
   }
@@ -342,7 +342,7 @@ namespace jank::runtime::module
     {
       register_directory(entries, p);
     }
-    else if(p.extension().native() == ".jar")
+    else if(p.extension().string() == ".jar")
     {
       register_jar(entries, path);
     }
@@ -350,7 +350,7 @@ namespace jank::runtime::module
      * JVM supports this, but I like that it allows us to put specific files in the path. */
     else
     {
-      auto const &module_path(p.native());
+      auto const module_path(p.string());
       register_entry(entries, module_path, { none, module_path });
     }
   }
@@ -403,12 +403,12 @@ namespace jank::runtime::module
 
     /* These paths are used by an installed jank. */
     paths += util::format(":{}", binary_cache_dir);
-    paths += util::format(":{}", (resource_dir / "src/jank").native());
+    paths += util::format(":{}", (resource_dir / "src/jank").string());
 
     /* These paths below are only used during development. */
-    paths += util::format(":{}", (jank_path / "core-libs").native());
-    paths += util::format(":{}", (jank_path / binary_cache_dir.c_str()).native());
-    paths += util::format(":{}", (jank_path / "../src/jank").native());
+    paths += util::format(":{}", (jank_path / "core-libs").string());
+    paths += util::format(":{}", (jank_path / binary_cache_dir.c_str()).string());
+    paths += util::format(":{}", (jank_path / "../src/jank").string());
 
     this->paths = paths;
 
