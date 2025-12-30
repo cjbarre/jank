@@ -382,7 +382,7 @@ namespace jank::environment
 
       auto const saved_opts{ util::cli::opts };
       util::cli::opts.target_module = "health";
-      util::cli::opts.output_filename = exe_output;
+      util::cli::opts.output_filename = exe_output.string();
       util::cli::opts.module_path = path_tmp;
       util::scope_exit const finally{ /* NOLINTNEXTLINE(bugprone-exception-escape) */
                                       [=] { util::cli::opts = saved_opts; }
@@ -401,11 +401,13 @@ namespace jank::environment
       aot_prc.compile(util::cli::opts.target_module).expect_ok();
 
       auto const stdout_file{ std::filesystem::path{ path_tmp } / "stdout" };
+      auto const exe_output_str{ exe_output.string() };
+      auto const stdout_file_str{ stdout_file.string() };
       auto const proc_code{ llvm::sys::ExecuteAndWait(
-        exe_output.c_str(),
-        { exe_output.c_str() },
+        exe_output_str.c_str(),
+        { exe_output_str.c_str() },
         std::nullopt,
-        { std::nullopt, stdout_file.c_str(), std::nullopt },
+        { std::nullopt, stdout_file_str.c_str(), std::nullopt },
         5) };
       if(proc_code != 0)
       {
