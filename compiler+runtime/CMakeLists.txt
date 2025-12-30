@@ -418,12 +418,34 @@ include(cmake/dependency/cpptrace.cmake)
 include(cmake/dependency/cppinterop.cmake)
 include(cmake/dependency/boost-multiprecision.cmake)
 
-# On Windows, help FindOpenSSL locate the libraries in chocolatey's subdirectory structure
-if(WIN32 AND OPENSSL_ROOT_DIR AND NOT OPENSSL_CRYPTO_LIBRARY)
-  set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_ROOT_DIR}/lib/VC/x64/MD/libcrypto.lib" CACHE FILEPATH "OpenSSL crypto library")
-  set(OPENSSL_SSL_LIBRARY "${OPENSSL_ROOT_DIR}/lib/VC/x64/MD/libssl.lib" CACHE FILEPATH "OpenSSL SSL library")
+# Chocolatey's OpenSSL uses a non-standard path structure (lib/VC/x64/MD/) that
+# CMake's FindOpenSSL module doesn't search. This is a known issue with OpenSSL 3.x
+# on Windows. Bypass find_package and manually find the library on Windows.
+if(WIN32)
+  find_library(OPENSSL_CRYPTO_LIBRARY
+    NAMES libcrypto crypto
+    PATHS "${OPENSSL_ROOT_DIR}/lib/VC/x64/MD"
+          "${OPENSSL_ROOT_DIR}/lib/VC"
+          "${OPENSSL_ROOT_DIR}/lib"
+    NO_DEFAULT_PATH
+  )
+  find_path(OPENSSL_INCLUDE_DIR
+    NAMES openssl/ssl.h
+    PATHS "${OPENSSL_ROOT_DIR}/include"
+    NO_DEFAULT_PATH
+  )
+  if(NOT OPENSSL_CRYPTO_LIBRARY OR NOT OPENSSL_INCLUDE_DIR)
+    message(FATAL_ERROR "OpenSSL not found. Set OPENSSL_ROOT_DIR to your OpenSSL installation.")
+  endif()
+  add_library(OpenSSL::Crypto UNKNOWN IMPORTED)
+  set_target_properties(OpenSSL::Crypto PROPERTIES
+    IMPORTED_LOCATION "${OPENSSL_CRYPTO_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+  )
+  message(STATUS "Found OpenSSL Crypto: ${OPENSSL_CRYPTO_LIBRARY}")
+else()
+  find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 endif()
-find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 # ---- Other dependencies ----
 
 # ---- libjank.a ----
