@@ -399,6 +399,7 @@ jobs:
             -Dllvm_dir="$llvmInstall" `
             -DLLVM_DIR="$llvmInstall/lib/cmake/llvm" `
             -DClang_DIR="$llvmInstall/lib/cmake/clang" `
+            -DOPENSSL_ROOT_DIR="C:/Program Files/OpenSSL" `
             -Djank_local_clang=ON `
             -Djank_test=OFF
       - name: Build jank
