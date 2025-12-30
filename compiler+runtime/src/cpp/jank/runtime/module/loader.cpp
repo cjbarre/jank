@@ -213,7 +213,8 @@ namespace jank::runtime::module
                              file_entry const &entry)
   {
     std::filesystem::path const p{ native_transient_string{ entry.path } };
-    auto const ext(p.extension().native());
+    /* Use .string() instead of .native() for Windows compatibility. */
+    auto const ext(p.extension().string());
     bool registered{};
     if(ext == ".jank")
     {
