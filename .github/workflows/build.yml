@@ -296,7 +296,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/compiler+runtime/build/llvm-install
-          key: clang-Windows-v4-${{ hashFiles('compiler+runtime/bin/build-clang') }}
+          key: clang-Windows-v5-${{ hashFiles('compiler+runtime/bin/build-clang') }}
       - name: Build Clang/LLVM
         shell: pwsh
         run: |
@@ -319,7 +319,7 @@ jobs:
 
             # Configure LLVM
             # Note: LLVM_EXPORT_SYMBOLS_FOR_PLUGINS causes "multiple rules generate lib/clang.lib" on Windows
-            # CLANG_TOOL_C_INDEX_TEST_BUILD=OFF avoids duplicate symbol errors when linking c-index-test
+            # CLANG_INCLUDE_TESTS=OFF disables clang tests which have duplicate symbol issues with c-index-test
             cmake -S llvm/llvm -B llvm-build -G Ninja `
               -DCMAKE_BUILD_TYPE=Release `
               -DCMAKE_C_COMPILER=clang `
@@ -331,7 +331,8 @@ jobs:
               -DCLANG_ENABLE_STATIC_ANALYZER=OFF `
               -DCLANG_ENABLE_ARCMT=OFF `
               -DLLVM_INSTALL_UTILS=ON `
-              -DCLANG_TOOL_C_INDEX_TEST_BUILD=OFF `
+              -DCLANG_INCLUDE_TESTS=OFF `
+              -DLLVM_INCLUDE_TESTS=OFF `
               -DCMAKE_INSTALL_PREFIX="$buildDir/llvm-install/usr/local"
 
             # Build and install
@@ -369,7 +370,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/compiler+runtime/build/llvm-install
-          key: clang-Windows-v4-${{ hashFiles('compiler+runtime/bin/build-clang') }}
+          key: clang-Windows-v5-${{ hashFiles('compiler+runtime/bin/build-clang') }}
       - name: Configure jank
         shell: pwsh
         run: |
