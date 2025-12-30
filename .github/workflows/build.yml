@@ -395,10 +395,10 @@ jobs:
           }
 
           # Find OpenSSL installation - chocolatey puts libs in VC subdirectory
-          $opensslDir = if (Test-Path "C:/Program Files/OpenSSL-Win64") { "C:/Program Files/OpenSSL-Win64" } else { "C:/Program Files/OpenSSL" }
+          $opensslDir = "C:/Program Files/OpenSSL"
+          $opensslLibDir = "$opensslDir/lib/VC/x64/MD"
           Write-Host "Using OpenSSL from: $opensslDir"
-          Write-Host "OpenSSL lib contents:"
-          Get-ChildItem "$opensslDir/lib" -Recurse -ErrorAction SilentlyContinue | Select-Object FullName
+          Write-Host "Crypto lib exists: $(Test-Path "$opensslLibDir/libcrypto.lib")"
 
           cd compiler+runtime
           cmake -B build -G Ninja `
@@ -409,8 +409,9 @@ jobs:
             -DLLVM_DIR="$llvmInstall/lib/cmake/llvm" `
             -DClang_DIR="$llvmInstall/lib/cmake/clang" `
             -DOPENSSL_ROOT_DIR="$opensslDir" `
-            -DOPENSSL_CRYPTO_LIBRARY="$opensslDir/lib/VC/x64/MD/libcrypto.lib" `
-            -DOPENSSL_SSL_LIBRARY="$opensslDir/lib/VC/x64/MD/libssl.lib" `
+            -DOPENSSL_INCLUDE_DIR="$opensslDir/include" `
+            -DOPENSSL_CRYPTO_LIBRARY="$opensslLibDir/libcrypto.lib" `
+            -DOPENSSL_SSL_LIBRARY="$opensslLibDir/libssl.lib" `
             -Djank_local_clang=ON `
             -Djank_test=OFF
       - name: Build jank
