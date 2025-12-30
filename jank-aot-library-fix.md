@@ -255,3 +255,37 @@ return configured_path.string();
 This is safe cross-platform:
 - On Linux/macOS: `path.string()` returns the internal string (no conversion)
 - On Windows: `path.string()` converts UTF-16 to UTF-8
+
+**Issue 3: `path.native()` returns `wchar_t` string on Windows**
+
+Similar to `.c_str()`, the `.native()` method returns `std::wstring` on Windows but `std::string` on Linux/macOS. Functions returning `std::string` that use `.native()` fail on Windows.
+
+**File:** `util/path.cpp`
+
+**Fix:** Use `.string()` instead of `.native()`:
+
+```cpp
+// Before (fails on Windows - returns wstring):
+return path.native();
+
+// After (works on all platforms):
+return path.string();
+```
+
+**Issue 4: Constructing `std::filesystem::path` from `jtl::immutable_string`**
+
+On Windows, `std::filesystem::path` doesn't have a constructor that accepts `jtl::immutable_string` directly. Need to use `.c_str()` to get a `const char*`.
+
+**File:** `util/clang.cpp`
+
+**Fix:** Add `.c_str()` when constructing paths from `jtl::immutable_string`:
+
+```cpp
+// Before (fails on Windows):
+include_path = install_path;
+std::filesystem::path const output_path{ format(...) };
+
+// After:
+include_path = install_path.c_str();
+std::filesystem::path const output_path{ format(...).c_str() };
+```

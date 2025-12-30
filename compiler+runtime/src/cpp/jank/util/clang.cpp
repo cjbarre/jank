@@ -306,11 +306,11 @@ namespace jank::util
                        include_path.string(),
                        install_path)));
       }
-      include_path = install_path;
+      include_path = install_path.c_str();
     }
 
     std::filesystem::path const output_path{ format("{}/incremental.pch",
-                                                    user_cache_dir(binary_version)) };
+                                                    user_cache_dir(binary_version)).c_str() };
     std::filesystem::create_directories(output_path.parent_path());
 
     /* Store string versions of paths so they remain valid during the clang invocation */

@@ -24,16 +24,18 @@ namespace jank::util
    * with specific support for directories so we don't end up with `r/spam/meow.jank`. */
   std::string compact_path(std::filesystem::path const &path, usize const max_size)
   {
-    if(path.native().size() <= max_size)
+    /* Use .string() instead of .native() for cross-platform compatibility.
+     * On Windows, .native() returns std::wstring, but we need std::string. */
+    auto str{ path.string() };
+    if(str.size() <= max_size)
     {
-      return path.native();
+      return str;
     }
 
-    auto str{ path.native() };
     while(str.size() + 1 > max_size)
     {
       auto const slash{ str.find('/') };
-      if(slash == decltype(str)::npos)
+      if(slash == std::string::npos)
       {
         auto const diff{ str.size() - max_size + 1 };
         return "…" + str.erase(0, diff);
