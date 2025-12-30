@@ -333,8 +333,6 @@ jobs:
               -DLLVM_INSTALL_UTILS=ON `
               -DCLANG_INCLUDE_TESTS=OFF `
               -DLLVM_INCLUDE_TESTS=OFF `
-              -DLLVM_BUILD_LLVM_DYLIB=ON `
-              -DLLVM_LINK_LLVM_DYLIB=ON `
               -DLLVM_ENABLE_ZLIB=OFF `
               -DLLVM_ENABLE_EH=ON `
               -DLLVM_ENABLE_RTTI=ON `

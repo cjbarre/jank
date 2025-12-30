@@ -857,11 +857,36 @@ target_include_directories(jank_exe_phase_1 SYSTEM PRIVATE "$<TARGET_PROPERTY:ja
 target_link_directories(jank_exe_phase_1 PRIVATE "$<TARGET_PROPERTY:jank_lib,LINK_DIRECTORIES>")
 target_link_options(jank_exe_phase_1 PRIVATE ${jank_linker_flags} -L ${CMAKE_BINARY_DIR})
 
+# On Windows, LLVM is built as individual component libraries (no single LLVM.lib/clang-cpp.lib).
+# On Unix, we link against the single shared libraries.
+if(WIN32)
+  # Get LLVM libraries - Windows doesn't support single LLVM.lib
+  llvm_map_components_to_libnames(jank_llvm_component_libs
+    Core Support OrcJIT ExecutionEngine RuntimeDyld JITLink
+    native Target MC MCParser MCDisassembler
+    TransformUtils Analysis Object BitReader BitWriter
+    Passes ScalarOpts InstCombine CodeGen AsmPrinter
+    X86CodeGen X86AsmParser X86Desc X86Info X86Disassembler
+    WindowsDriver Option
+  )
+  # Clang libraries (instead of clang-cpp)
+  set(jank_clang_libs
+    clangInterpreter clangCodeGen clangFrontend clangSerialization
+    clangDriver clangParse clangSema clangAnalysis clangASTMatchers
+    clangEdit clangAST clangLex clangBasic clangSupport
+  )
+  set(jank_llvm_libs ${jank_llvm_component_libs} ${jank_clang_libs})
+  set(jank_zlib "")  # Not needed with LLVM_ENABLE_ZLIB=OFF
+else()
+  set(jank_llvm_libs LLVM clang-cpp)
+  set(jank_zlib z)
+endif()
+
 target_link_libraries(
   jank_exe_phase_1 PUBLIC
   ${jank_link_whole_start} ${CMAKE_BINARY_DIR}/libjank-standalone-phase-1.a ${jank_link_whole_end}
-  z
-  LLVM clang-cpp
+  ${jank_zlib}
+  ${jank_llvm_libs}
   OpenSSL::Crypto
 )
 
@@ -963,8 +988,8 @@ if(jank_test)
   target_link_libraries(
     jank_test_exe PUBLIC
     ${jank_link_whole_start} ${CMAKE_BINARY_DIR}/libjank-standalone-phase-1.a ${jank_link_whole_end}
-    z
-    LLVM clang-cpp
+    ${jank_zlib}
+    ${jank_llvm_libs}
     OpenSSL::Crypto
     doctest::doctest
   )
