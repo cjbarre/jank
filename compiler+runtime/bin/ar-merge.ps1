@@ -70,10 +70,10 @@ switch ($command) {
                 $rspFile = $Matches[1]
                 Write-Host "ar-merge.ps1 default: Expanding response file: $rspFile"
                 if (Test-Path $rspFile) {
-                    # Read response file and add each line as an object file
-                    $rspContents = Get-Content $rspFile
-                    foreach ($line in $rspContents) {
-                        $trimmed = $line.Trim()
+                    # Read response file and split by whitespace (files may be space-separated on one line)
+                    $rspContents = Get-Content $rspFile -Raw
+                    $rspContents -split '\s+' | ForEach-Object {
+                        $trimmed = $_.Trim()
                         if ($trimmed -ne "") {
                             $expanded_args += $trimmed
                         }
