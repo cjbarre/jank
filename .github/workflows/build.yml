@@ -374,7 +374,8 @@ jobs:
       - name: Configure jank
         shell: pwsh
         run: |
-          $llvmInstall = "${{ github.workspace }}/compiler+runtime/build/llvm-install/usr/local"
+          # Normalize paths to forward slashes to avoid CMake escape issues with \a, \j, etc.
+          $llvmInstall = "${{ github.workspace }}/compiler+runtime/build/llvm-install/usr/local" -replace '\\','/'
           $clangPath = "$llvmInstall/bin"
           $env:PATH = "$clangPath;$env:PATH"
           $env:CC = "$clangPath/clang.exe"
