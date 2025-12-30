@@ -767,14 +767,16 @@ set(
   third-party/folly/folly/lang/SafeAssert.cpp
   third-party/folly/folly/lang/ToAscii.cpp
   third-party/folly/folly/system/ThreadId.cpp
-  third-party/folly/folly/system/AtFork.cpp
   third-party/folly/folly/detail/Futex.cpp
   third-party/folly/folly/memory/folly_stubs.cpp
 )
 
-# CacheLocality.cpp uses Linux-only dlopen/dlsym for vDSO access
+# These folly files use Linux-only APIs (dlopen/dlsym, pthread_atfork)
 if(NOT WIN32)
-  list(APPEND folly_sources third-party/folly/folly/concurrency/CacheLocality.cpp)
+  list(APPEND folly_sources
+    third-party/folly/folly/concurrency/CacheLocality.cpp
+    third-party/folly/folly/system/AtFork.cpp
+  )
 endif()
 
 add_library(folly_lib STATIC ${folly_sources})
