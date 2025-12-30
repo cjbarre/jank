@@ -365,9 +365,6 @@ jobs:
       - name: Install OpenSSL
         run: |
           choco install openssl -y
-          # Show where OpenSSL was installed
-          Get-ChildItem "C:\Program Files\OpenSSL*" -ErrorAction SilentlyContinue
-          Get-ChildItem "C:\Program Files\OpenSSL\lib" -ErrorAction SilentlyContinue
       - name: Cache Clang/LLVM
         uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684
         with:
@@ -394,12 +391,6 @@ jobs:
             Get-ChildItem "$llvmInstall/lib" -Depth 1
           }
 
-          # Find OpenSSL installation - chocolatey puts libs in VC subdirectory
-          $opensslDir = "C:/Program Files/OpenSSL"
-          $opensslLibDir = "$opensslDir/lib/VC/x64/MD"
-          Write-Host "Using OpenSSL from: $opensslDir"
-          Write-Host "Crypto lib exists: $(Test-Path "$opensslLibDir/libcrypto.lib")"
-
           cd compiler+runtime
           cmake -B build -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
@@ -408,10 +399,7 @@ jobs:
             -Dllvm_dir="$llvmInstall" `
             -DLLVM_DIR="$llvmInstall/lib/cmake/llvm" `
             -DClang_DIR="$llvmInstall/lib/cmake/clang" `
-            -DOPENSSL_ROOT_DIR="$opensslDir" `
-            -DOPENSSL_INCLUDE_DIR="$opensslDir/include" `
-            -DOPENSSL_CRYPTO_LIBRARY="$opensslLibDir/libcrypto.lib" `
-            -DOPENSSL_SSL_LIBRARY="$opensslLibDir/libssl.lib" `
+            -DOPENSSL_ROOT_DIR="C:/Program Files/OpenSSL" `
             -Djank_local_clang=ON `
             -Djank_test=OFF
       - name: Build jank

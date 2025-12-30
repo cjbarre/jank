@@ -418,6 +418,11 @@ include(cmake/dependency/cpptrace.cmake)
 include(cmake/dependency/cppinterop.cmake)
 include(cmake/dependency/boost-multiprecision.cmake)
 
+# On Windows, help FindOpenSSL locate the libraries in chocolatey's subdirectory structure
+if(WIN32 AND OPENSSL_ROOT_DIR AND NOT OPENSSL_CRYPTO_LIBRARY)
+  set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_ROOT_DIR}/lib/VC/x64/MD/libcrypto.lib" CACHE FILEPATH "OpenSSL crypto library")
+  set(OPENSSL_SSL_LIBRARY "${OPENSSL_ROOT_DIR}/lib/VC/x64/MD/libssl.lib" CACHE FILEPATH "OpenSSL SSL library")
+endif()
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 # ---- Other dependencies ----
 
