@@ -792,6 +792,29 @@ target_compile_features(folly_lib PUBLIC ${jank_cxx_standard})
 target_compile_options(folly_lib PUBLIC ${jank_common_compiler_flags} ${jank_aot_compiler_flags} -w)
 target_link_options(folly_lib PRIVATE ${jank_linker_flags})
 
+# Windows-specific folly configuration - disable Linux-only features
+if(WIN32)
+  target_compile_definitions(folly_lib PRIVATE
+    FOLLY_HAVE_LINUX_VDSO=0
+    FOLLY_HAVE_IFUNC=0
+    FOLLY_HAVE_MALLOC_USABLE_SIZE=0
+    FOLLY_HAVE_ELF=0
+    FOLLY_HAVE_SWAPCONTEXT=0
+    FOLLY_HAVE_BACKTRACE=0
+    FOLLY_USE_SYMBOLIZER=0
+    FOLLY_HAVE_PTHREAD=0
+    FOLLY_HAVE_PTHREAD_ATFORK=0
+    FOLLY_HAVE_CLOCK_GETTIME=0
+    FOLLY_HAVE_ACCEPT4=0
+    FOLLY_HAVE_GETRANDOM=0
+    FOLLY_HAVE_PREADV=0
+    FOLLY_HAVE_PWRITEV=0
+    FOLLY_HAVE_PIPE2=0
+    FOLLY_HAVE_SENDMMSG=0
+    FOLLY_HAVE_RECVMMSG=0
+  )
+endif()
+
 #set_target_properties(folly_lib PROPERTIES LINK_FLAGS_RELEASE "-s")
 
 # Symbol exporting for JIT.
