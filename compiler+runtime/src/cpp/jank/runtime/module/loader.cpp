@@ -402,13 +402,13 @@ namespace jank::runtime::module
     native_transient_string paths{ util::cli::opts.module_path };
 
     /* These paths are used by an installed jank. */
-    paths += util::format(":{}", binary_cache_dir);
-    paths += util::format(":{}", (resource_dir / "src/jank").string());
+    paths += util::format("{}{}", loader::module_separator, binary_cache_dir);
+    paths += util::format("{}{}", loader::module_separator, (resource_dir / "src/jank").string());
 
     /* These paths below are only used during development. */
-    paths += util::format(":{}", (jank_path / "core-libs").string());
-    paths += util::format(":{}", (jank_path / binary_cache_dir.c_str()).string());
-    paths += util::format(":{}", (jank_path / "../src/jank").string());
+    paths += util::format("{}{}", loader::module_separator, (jank_path / "core-libs").string());
+    paths += util::format("{}{}", loader::module_separator, (jank_path / binary_cache_dir.c_str()).string());
+    paths += util::format("{}{}", loader::module_separator, (jank_path / "../src/jank").string());
 
     this->paths = paths;
 

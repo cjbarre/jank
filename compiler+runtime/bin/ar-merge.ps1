@@ -6,6 +6,9 @@ $cache_dir = "@CMAKE_CURRENT_BINARY_DIR@/ar-cache"
 
 $ErrorActionPreference = "Stop"
 
+# Ensure we're in the build directory so relative paths (like response files) work
+Set-Location $cmake_binary_dir
+
 $command = $args[0]
 $remaining_args = $args[1..($args.Length - 1)]
 
