@@ -148,6 +148,8 @@ endif()
 # Windows-specific: prevent min/max macros from conflicting with std::min/std::max
 if(WIN32)
   list(APPEND jank_common_compiler_flags -DNOMINMAX -DWIN32_LEAN_AND_MEAN)
+  # Tell bdwgc and cpptrace we're using them as static libraries, not DLLs
+  list(APPEND jank_common_compiler_flags -DGC_NOT_DLL -DCPPTRACE_STATIC_DEFINE)
 endif()
 
 include(cmake/coverage.cmake)
@@ -761,7 +763,6 @@ set_target_properties(jank_lib PROPERTIES ENABLE_EXPORTS 1)
 set(
   folly_sources
   third-party/folly/folly/ScopeGuard.cpp
-  third-party/folly/folly/SharedMutex.cpp
   third-party/folly/folly/synchronization/ParkingLot.cpp
   third-party/folly/folly/synchronization/SanitizeThread.cpp
   third-party/folly/folly/lang/SafeAssert.cpp
@@ -771,11 +772,12 @@ set(
   third-party/folly/folly/memory/folly_stubs.cpp
 )
 
-# These folly files use Linux-only APIs (dlopen/dlsym, pthread_atfork)
+# These folly files use Linux-only APIs (dlopen/dlsym, pthread_atfork, getrusage)
 if(NOT WIN32)
   list(APPEND folly_sources
     third-party/folly/folly/concurrency/CacheLocality.cpp
     third-party/folly/folly/system/AtFork.cpp
+    third-party/folly/folly/SharedMutex.cpp
   )
 endif()
 
@@ -867,7 +869,7 @@ if(WIN32)
     TransformUtils Analysis Object BitReader BitWriter
     Passes ScalarOpts InstCombine CodeGen AsmPrinter
     X86CodeGen X86AsmParser X86Desc X86Info X86Disassembler
-    WindowsDriver Option
+    WindowsDriver Option LineEditor
   )
   # Clang libraries (instead of clang-cpp)
   set(jank_clang_libs
