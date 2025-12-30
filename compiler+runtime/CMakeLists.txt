@@ -191,8 +191,9 @@ endfunction()
 if(WIN32)
   # On Windows, use PowerShell to extract include paths from clang verbose output.
   # The verbose output (-v) goes to stderr, so we redirect it.
+  # Use NUL (Windows null device) as the input file.
   execute_process(
-    COMMAND powershell -Command "& '${CMAKE_CXX_COMPILER}' -xc++ -E -v $null 2>&1 | Select-String -Pattern '^ [A-Z]:' | ForEach-Object { '-I' + $_.Line.Trim() }"
+    COMMAND powershell -Command "& '${CMAKE_CXX_COMPILER}' -xc++ -E -v NUL 2>&1 | Select-String -Pattern '^ [A-Z]:' | ForEach-Object { '-I' + $_.Line.Trim() }"
     RESULT_VARIABLE clang_system_includes_result
     OUTPUT_VARIABLE clang_system_includes_unescaped
     OUTPUT_STRIP_TRAILING_WHITESPACE
