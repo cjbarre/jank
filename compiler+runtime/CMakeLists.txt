@@ -763,6 +763,7 @@ set_target_properties(jank_lib PROPERTIES ENABLE_EXPORTS 1)
 set(
   folly_sources
   third-party/folly/folly/ScopeGuard.cpp
+  third-party/folly/folly/SharedMutex.cpp
   third-party/folly/folly/synchronization/ParkingLot.cpp
   third-party/folly/folly/synchronization/SanitizeThread.cpp
   third-party/folly/folly/lang/SafeAssert.cpp
@@ -772,12 +773,18 @@ set(
   third-party/folly/folly/memory/folly_stubs.cpp
 )
 
-# These folly files use Linux-only APIs (dlopen/dlsym, pthread_atfork, getrusage)
+# These folly files use Linux-only APIs (dlopen/dlsym, pthread_atfork)
 if(NOT WIN32)
   list(APPEND folly_sources
     third-party/folly/folly/concurrency/CacheLocality.cpp
     third-party/folly/folly/system/AtFork.cpp
-    third-party/folly/folly/SharedMutex.cpp
+  )
+else()
+  # Windows stubs for CacheLocality (uses Windows API directly)
+  # SysResource.cpp provides getrusage stub for SharedMutex.cpp
+  list(APPEND folly_sources
+    third-party/folly/folly/concurrency/CacheLocality_windows.cpp
+    third-party/folly/folly/portability/SysResource.cpp
   )
 endif()
 
@@ -879,7 +886,10 @@ if(WIN32)
   )
   set(jank_llvm_libs ${jank_llvm_component_libs} ${jank_clang_libs})
   set(jank_zlib "")  # Not needed with LLVM_ENABLE_ZLIB=OFF
+  # Windows-specific libraries for debugging/stack traces (cpptrace)
+  set(jank_platform_libs dbghelp)
 else()
+  set(jank_platform_libs "")
   set(jank_llvm_libs LLVM clang-cpp)
   set(jank_zlib z)
 endif()
@@ -889,6 +899,7 @@ target_link_libraries(
   ${jank_link_whole_start} ${CMAKE_BINARY_DIR}/libjank-standalone-phase-1.a ${jank_link_whole_end}
   ${jank_zlib}
   ${jank_llvm_libs}
+  ${jank_platform_libs}
   OpenSSL::Crypto
 )
 
