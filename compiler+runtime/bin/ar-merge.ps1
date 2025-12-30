@@ -7,7 +7,9 @@ $cache_dir = "@CMAKE_CURRENT_BINARY_DIR@/ar-cache"
 $ErrorActionPreference = "Stop"
 
 # Ensure we're in the build directory so relative paths (like response files) work
+Write-Host "ar-merge.ps1: Setting location to $cmake_binary_dir"
 Set-Location $cmake_binary_dir
+Write-Host "ar-merge.ps1: Current directory is $(Get-Location)"
 
 $command = $args[0]
 $remaining_args = $args[1..($args.Length - 1)]
@@ -57,11 +59,30 @@ switch ($command) {
         $base = $output -replace '[/\\]', '_'
         $list_file = "$cache_dir/$base.list"
 
+        Write-Host "ar-merge.ps1 default: command=$command output=$output"
+        Write-Host "ar-merge.ps1 default: object_args=$object_args"
+
+        # Check if any arg is a response file and verify it exists
+        foreach ($arg in $object_args) {
+            if ($arg -match '^@(.+)$') {
+                $rspFile = $Matches[1]
+                Write-Host "ar-merge.ps1 default: Response file reference: $rspFile"
+                if (Test-Path $rspFile) {
+                    Write-Host "ar-merge.ps1 default: Response file EXISTS at $rspFile"
+                } else {
+                    Write-Host "ar-merge.ps1 default: Response file NOT FOUND at $rspFile"
+                    Write-Host "ar-merge.ps1 default: Listing CMakeFiles directory:"
+                    Get-ChildItem -Path "CMakeFiles" -Filter "*.rsp" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+                }
+            }
+        }
+
         if (Test-Path $list_file) {
             Remove-Item -Force $list_file
         }
         $object_args -join "`n" | Out-File -FilePath $list_file -Encoding utf8
 
+        Write-Host "ar-merge.ps1 default: Running $ar $command $output with args"
         & $ar $command $output @object_args
     }
 }
