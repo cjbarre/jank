@@ -296,7 +296,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/compiler+runtime/build/llvm-install
-          key: clang-Windows-v5-${{ hashFiles('compiler+runtime/bin/build-clang') }}
+          key: clang-Windows-v6-${{ hashFiles('compiler+runtime/bin/build-clang') }}
       - name: Build Clang/LLVM
         shell: pwsh
         run: |
@@ -333,6 +333,11 @@ jobs:
               -DLLVM_INSTALL_UTILS=ON `
               -DCLANG_INCLUDE_TESTS=OFF `
               -DLLVM_INCLUDE_TESTS=OFF `
+              -DLLVM_BUILD_LLVM_DYLIB=ON `
+              -DLLVM_LINK_LLVM_DYLIB=ON `
+              -DLLVM_ENABLE_ZLIB=OFF `
+              -DLLVM_ENABLE_EH=ON `
+              -DLLVM_ENABLE_RTTI=ON `
               -DCMAKE_INSTALL_PREFIX="$buildDir/llvm-install/usr/local"
 
             # Build and install
@@ -370,7 +375,7 @@ jobs:
         with:
           path: |
             ${{ github.workspace }}/compiler+runtime/build/llvm-install
-          key: clang-Windows-v5-${{ hashFiles('compiler+runtime/bin/build-clang') }}
+          key: clang-Windows-v6-${{ hashFiles('compiler+runtime/bin/build-clang') }}
       - name: Configure jank
         shell: pwsh
         run: |
