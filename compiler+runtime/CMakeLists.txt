@@ -762,7 +762,6 @@ set(
   folly_sources
   third-party/folly/folly/ScopeGuard.cpp
   third-party/folly/folly/SharedMutex.cpp
-  third-party/folly/folly/concurrency/CacheLocality.cpp
   third-party/folly/folly/synchronization/ParkingLot.cpp
   third-party/folly/folly/synchronization/SanitizeThread.cpp
   third-party/folly/folly/lang/SafeAssert.cpp
@@ -772,6 +771,11 @@ set(
   third-party/folly/folly/detail/Futex.cpp
   third-party/folly/folly/memory/folly_stubs.cpp
 )
+
+# CacheLocality.cpp uses Linux-only dlopen/dlsym for vDSO access
+if(NOT WIN32)
+  list(APPEND folly_sources third-party/folly/folly/concurrency/CacheLocality.cpp)
+endif()
 
 add_library(folly_lib STATIC ${folly_sources})
 
