@@ -904,12 +904,12 @@ namespace jank::runtime::module
           if(source.archive_path.is_some())
           {
             path = util::format("{}:{}",
-                                util::relative_path(source.archive_path.unwrap()),
+                                util::relative_path(source.archive_path.unwrap()).string(),
                                 source.path);
           }
           else
           {
-            path = util::relative_path(source.path);
+            path = util::relative_path(source.path).string();
           }
         }
         break;
@@ -919,12 +919,12 @@ namespace jank::runtime::module
           if(source.archive_path.is_some())
           {
             path = util::format("{}:{}",
-                                util::relative_path(source.archive_path.unwrap()),
+                                util::relative_path(source.archive_path.unwrap()).string(),
                                 source.path);
           }
           else
           {
-            path = util::relative_path(source.path);
+            path = util::relative_path(source.path).string();
           }
         }
         break;
@@ -934,12 +934,12 @@ namespace jank::runtime::module
           if(source.archive_path.is_some())
           {
             path = util::format("{}:{}",
-                                util::relative_path(source.archive_path.unwrap()),
+                                util::relative_path(source.archive_path.unwrap()).string(),
                                 source.path);
           }
           else
           {
-            path = util::relative_path(source.path);
+            path = util::relative_path(source.path).string();
           }
         }
         break;
@@ -949,12 +949,12 @@ namespace jank::runtime::module
           if(source.archive_path.is_some())
           {
             path = util::format("{}:{}",
-                                util::relative_path(source.archive_path.unwrap()),
+                                util::relative_path(source.archive_path.unwrap()).string(),
                                 source.path);
           }
           else
           {
-            path = util::relative_path(source.path);
+            path = util::relative_path(source.path).string();
           }
         }
         break;
