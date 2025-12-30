@@ -390,11 +390,12 @@ namespace jank::runtime
 
     /* TODO: Is there a better place for this block of code? */
     std::error_code file_error{};
-    llvm::raw_fd_ostream os(module_path.c_str(), file_error, llvm::sys::fs::OpenFlags::OF_None);
+    auto const module_path_str{ module_path.string() };
+    llvm::raw_fd_ostream os(module_path_str.c_str(), file_error, llvm::sys::fs::OpenFlags::OF_None);
     if(file_error)
     {
       return err(util::format("failed to open module file {} with error {}",
-                              module_path.c_str(),
+                              module_path_str,
                               file_error.message()));
     }
     //module->print(llvm::outs(), nullptr);

@@ -41,8 +41,11 @@ namespace jank::runtime::module
   {
     static std::regex const slash{ "/" };
 
-    auto const &s(runtime::demunge(path.native()));
-    std::string ret{ s, 0, s.size() - path.extension().native().size() };
+    /* Use .string() instead of .native() for Windows compatibility.
+     * On Windows, .native() returns std::wstring. */
+    auto const path_str{ path.string() };
+    auto const &s(runtime::demunge(path_str));
+    std::string ret{ s, 0, s.size() - path.extension().string().size() };
 
     /* There's a special case of the / function which shouldn't be treated as a path. */
     if(ret.find("$/") == std::string::npos)
