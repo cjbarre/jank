@@ -145,6 +145,11 @@ if(jank_test)
   list(APPEND jank_common_compiler_flags -DJANK_TEST)
 endif()
 
+# Windows-specific: prevent min/max macros from conflicting with std::min/std::max
+if(WIN32)
+  list(APPEND jank_common_compiler_flags -DNOMINMAX -DWIN32_LEAN_AND_MEAN)
+endif()
+
 include(cmake/coverage.cmake)
 include(cmake/analyze.cmake)
 include(cmake/sanitization.cmake)
