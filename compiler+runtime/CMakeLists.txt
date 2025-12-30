@@ -611,7 +611,13 @@ add_library(
 )
 set_target_properties(jank_lib PROPERTIES UNITY_BUILD ${jank_unity_build})
 
-set_property(TARGET jank_lib PROPERTY OUTPUT_NAME jank)
+# On Windows, the executable with ENABLE_EXPORTS creates an import library (.lib).
+# To avoid collision with the static library, use a different name on Windows.
+if(WIN32)
+  set_property(TARGET jank_lib PROPERTY OUTPUT_NAME libjank)
+else()
+  set_property(TARGET jank_lib PROPERTY OUTPUT_NAME jank)
+endif()
 
 target_compile_features(jank_lib PUBLIC ${jank_cxx_standard})
 target_compile_options(jank_lib PUBLIC ${jank_common_compiler_flags} ${jank_aot_compiler_flags})
