@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include <folly/Synchronized.h>
 
 #include <jank/runtime/object.hpp>

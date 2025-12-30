@@ -1,6 +1,8 @@
 #pragma once
 
+#include <atomic>
 #include <functional>
+#include <thread>
 
 #include <folly/Synchronized.h>
 
