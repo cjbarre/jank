@@ -62,25 +62,37 @@ switch ($command) {
         Write-Host "ar-merge.ps1 default: command=$command output=$output"
         Write-Host "ar-merge.ps1 default: object_args=$object_args"
 
-        # Check if any arg is a response file and verify it exists
+        # Expand response files to get actual object file paths
+        # This is needed because response files are temporary and won't exist at merge time
+        $expanded_args = @()
         foreach ($arg in $object_args) {
             if ($arg -match '^@(.+)$') {
                 $rspFile = $Matches[1]
-                Write-Host "ar-merge.ps1 default: Response file reference: $rspFile"
+                Write-Host "ar-merge.ps1 default: Expanding response file: $rspFile"
                 if (Test-Path $rspFile) {
-                    Write-Host "ar-merge.ps1 default: Response file EXISTS at $rspFile"
+                    # Read response file and add each line as an object file
+                    $rspContents = Get-Content $rspFile
+                    foreach ($line in $rspContents) {
+                        $trimmed = $line.Trim()
+                        if ($trimmed -ne "") {
+                            $expanded_args += $trimmed
+                        }
+                    }
+                    Write-Host "ar-merge.ps1 default: Expanded to $($expanded_args.Count) object files"
                 } else {
-                    Write-Host "ar-merge.ps1 default: Response file NOT FOUND at $rspFile"
-                    Write-Host "ar-merge.ps1 default: Listing CMakeFiles directory:"
-                    Get-ChildItem -Path "CMakeFiles" -Filter "*.rsp" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+                    Write-Host "ar-merge.ps1 default: Response file NOT FOUND: $rspFile"
+                    $expanded_args += $arg
                 }
+            } else {
+                $expanded_args += $arg
             }
         }
 
         if (Test-Path $list_file) {
             Remove-Item -Force $list_file
         }
-        $object_args -join "`n" | Out-File -FilePath $list_file -Encoding utf8
+        # Store expanded object files, not response file references
+        $expanded_args -join "`n" | Out-File -FilePath $list_file -Encoding utf8
 
         Write-Host "ar-merge.ps1 default: Running $ar $command $output with args"
         & $ar $command $output @object_args
