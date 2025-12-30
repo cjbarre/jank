@@ -784,6 +784,9 @@ add_executable(jank::exe ALIAS jank_exe_phase_1)
 
 set_property(TARGET jank_exe_phase_1 PROPERTY OUTPUT_NAME jank-phase-1)
 
+# Cross-platform path to the phase-1 executable (includes .exe on Windows)
+set(jank_phase_1_exe ${CMAKE_BINARY_DIR}/jank-phase-1${CMAKE_EXECUTABLE_SUFFIX})
+
 # Symbol exporting for JIT.
 set_target_properties(jank_exe_phase_1 PROPERTIES ENABLE_EXPORTS 1)
 
@@ -844,7 +847,7 @@ if(jank_enable_phase_2)
   #set_target_properties(jank_exe_phase_2 PROPERTIES LINK_FLAGS_RELEASE "-s")
 else()
   add_custom_command(
-    DEPENDS ${CMAKE_BINARY_DIR}/jank-phase-1 ${jank_clojure_core_o} ${jank_incremental_pch_flag}
+    DEPENDS ${jank_phase_1_exe} ${jank_clojure_core_o} ${jank_incremental_pch_flag}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     OUTPUT ${CMAKE_BINARY_DIR}/jank
     COMMAND ln -sf jank-phase-1 jank
@@ -931,7 +934,7 @@ set(jank_incremental_pch_flag ${CMAKE_BINARY_DIR}/incremental.pch)
 separate_arguments(jank_incremental_pch_cxx_flags UNIX_COMMAND ${CMAKE_CXX_FLAGS})
 list(REMOVE_ITEM jank_incremental_pch_cxx_flags -fPIC)
 add_custom_command(
-  DEPENDS ${CMAKE_BINARY_DIR}/jank-phase-1
+  DEPENDS ${jank_phase_1_exe}
   OUTPUT ${jank_incremental_pch_flag}
   COMMAND_EXPAND_LISTS
   VERBATIM
@@ -966,11 +969,11 @@ add_custom_target(
 # change, or whenever the jank binary changes.
 set(jank_core_libraries_flag "${CMAKE_BINARY_DIR}/classes/core-libraries")
 add_custom_command(
-  DEPENDS ${CMAKE_BINARY_DIR}/jank-phase-1 ${CMAKE_SOURCE_DIR}/src/jank/clojure/core.jank ${jank_incremental_pch_flag}
+  DEPENDS ${jank_phase_1_exe} ${CMAKE_SOURCE_DIR}/src/jank/clojure/core.jank ${jank_incremental_pch_flag}
   OUTPUT ${jank_core_libraries_flag}
   BYPRODUCTS ${jank_clojure_core_o}
-  COMMAND ${CMAKE_BINARY_DIR}/jank-phase-1 compile-module -o ${jank_clojure_core_o} clojure.core
-  COMMAND touch ${jank_core_libraries_flag}
+  COMMAND ${jank_phase_1_exe} compile-module -o ${jank_clojure_core_o} clojure.core
+  COMMAND ${CMAKE_COMMAND} -E touch ${jank_core_libraries_flag}
 )
 add_custom_target(
   jank_core_libraries
