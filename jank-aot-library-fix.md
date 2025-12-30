@@ -289,3 +289,25 @@ std::filesystem::path const output_path{ format(...) };
 include_path = install_path.c_str();
 std::filesystem::path const output_path{ format(...).c_str() };
 ```
+
+**Issue 5: Wide character functions not in `std` namespace on Windows**
+
+On Windows with MSVC, the wide character functions (`iswspace`, `iswalnum`, `iswdigit`) from `<cwctype>` are in the global namespace, not `std::`. Using `std::iswspace` etc. fails to compile.
+
+**File:** `read/lex.cpp`
+
+**Fix:** Remove the `std::` prefix from wide character function calls:
+
+```cpp
+// Before (fails on Windows):
+std::iswspace(static_cast<wint_t>(c))
+std::iswalnum(static_cast<wint_t>(c))
+std::iswdigit(static_cast<wint_t>(c))
+
+// After (works on all platforms):
+iswspace(static_cast<wint_t>(c))
+iswalnum(static_cast<wint_t>(c))
+iswdigit(static_cast<wint_t>(c))
+```
+
+This works on all platforms because the functions are available in the global namespace on both Windows and POSIX systems.

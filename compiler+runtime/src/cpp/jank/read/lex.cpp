@@ -489,8 +489,10 @@ namespace jank::read::lex
 
   static bool is_symbol_char(char32_t const c)
   {
-    return !std::iswspace(static_cast<wint_t>(c)) && !is_special_char(c)
-      && (std::iswalnum(static_cast<wint_t>(c)) != 0 || c == '_' || c == '-' || c == '/' || c == '?'
+    /* Note: iswspace/iswalnum are used without std:: prefix for Windows compatibility.
+     * On Windows, these are in the global namespace, not std::. */
+    return !iswspace(static_cast<wint_t>(c)) && !is_special_char(c)
+      && (iswalnum(static_cast<wint_t>(c)) != 0 || c == '_' || c == '-' || c == '/' || c == '?'
           || c == '!' || c == '+' || c == '*' || c == '=' || c == '.' || c == '&' || c == '<'
           || c == '>' || c == '#' || c == '%' || is_utf8_char(c));
   }
@@ -905,7 +907,7 @@ namespace jank::read::lex
               return denominator.expect_err();
             }
             /* Not a digit */
-            else if(std::iswdigit(static_cast<wint_t>(c)) == 0)
+            else if(iswdigit(static_cast<wint_t>(c)) == 0)
             {
               if(expecting_exponent)
               {
@@ -1192,7 +1194,7 @@ namespace jank::read::lex
 
           auto const oc(peek());
 
-          if(oc.is_err() || std::iswspace(static_cast<wint_t>(oc.expect_ok().character))
+          if(oc.is_err() || iswspace(static_cast<wint_t>(oc.expect_ok().character))
              || is_special_char(oc.expect_ok().character))
           {
             ++pos;
@@ -1211,7 +1213,7 @@ namespace jank::read::lex
 
             /* Invalid ":: " source found. */
             if(after_dd_colon.is_err()
-               || std::iswspace(static_cast<wint_t>(after_dd_colon.expect_ok().character))
+               || iswspace(static_cast<wint_t>(after_dd_colon.expect_ok().character))
                || is_special_char(after_dd_colon.expect_ok().character))
             {
               ++pos;
