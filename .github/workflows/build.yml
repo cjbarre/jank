@@ -365,6 +365,9 @@ jobs:
       - name: Install OpenSSL
         run: |
           choco install openssl -y
+          # Show where OpenSSL was installed
+          Get-ChildItem "C:\Program Files\OpenSSL*" -ErrorAction SilentlyContinue
+          Get-ChildItem "C:\Program Files\OpenSSL\lib" -ErrorAction SilentlyContinue
       - name: Cache Clang/LLVM
         uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684
         with:
@@ -391,6 +394,10 @@ jobs:
             Get-ChildItem "$llvmInstall/lib" -Depth 1
           }
 
+          # Find OpenSSL installation
+          $opensslDir = if (Test-Path "C:/Program Files/OpenSSL-Win64") { "C:/Program Files/OpenSSL-Win64" } else { "C:/Program Files/OpenSSL" }
+          Write-Host "Using OpenSSL from: $opensslDir"
+
           cd compiler+runtime
           cmake -B build -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
@@ -399,7 +406,7 @@ jobs:
             -Dllvm_dir="$llvmInstall" `
             -DLLVM_DIR="$llvmInstall/lib/cmake/llvm" `
             -DClang_DIR="$llvmInstall/lib/cmake/clang" `
-            -DOPENSSL_ROOT_DIR="C:/Program Files/OpenSSL" `
+            -DOPENSSL_ROOT_DIR="$opensslDir" `
             -Djank_local_clang=ON `
             -Djank_test=OFF
       - name: Build jank
