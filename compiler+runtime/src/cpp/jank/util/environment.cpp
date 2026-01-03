@@ -173,6 +173,12 @@ namespace jank::util
       auto const dev_build{ jank_path.filename() == "build"
                             && jank_path.parent_path().filename() == "compiler+runtime" };
 
+      if(dev_build)
+      {
+        auto const compiler_runtime{ jank_path / ".." };
+        return compiler_runtime.c_str();
+      }
+
       auto const configured_path{ (jank_path / dir) };
       std::error_code ec;
       if(std::filesystem::exists(configured_path, ec) || dev_build)
